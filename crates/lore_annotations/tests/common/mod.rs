@@ -36,6 +36,7 @@ fn spec(
         comment_token: token.into(),
         wrappers: wrappers.iter().map(|s| s.to_string()).collect(),
         sibling_skips: skips.iter().map(|s| s.to_string()).collect(),
+        value_functions: Vec::new(),
         mutator_methods: Vec::new(),
         mutator_free_functions: Vec::new(),
         imports: Vec::new(),

@@ -12,17 +12,16 @@ use lore_intent::{Finding, IntentNode, Origin, Span, Spanned};
 /// Directories never scanned (build output, VCS, caches, dot-dirs).
 const SKIP_DIRS: [&str; 4] = [".git", "target", "node_modules", ".lore-cache"];
 
-/// Extensions of derive-capable languages (§8 derived layer): Python +
-/// TypeScript at T6 (D-014). Transitional until the derive adapter migrates
-/// onto packs and the scope is driven by pack tier "derive".
-const DERIVE_EXTS: [&str; 7] = ["py", "ts", "tsx", "js", "mjs", "cjs", "jsx"];
-
 pub struct Project {
     pub manifest: Manifest,
     pub sources: Vec<SourceFile>,
     /// The packs activated for this project (D-070): scanning/binding adapters
     /// for the languages named in `[project] languages`.
     pub packs: Vec<ActivePack>,
+    /// The derive-tier packs (§8.6.2): `PackSpec` + grammar handle, passed to
+    /// lore_derive as data (D-070d). Derivation scope is exactly the files
+    /// these claim — the pack tier drives it, not a hardcoded extension list.
+    pub derive_packs: Vec<lore_derive::DerivePack>,
 }
 
 /// Load manifest + sources, reporting manifest problems on stderr.
@@ -64,12 +63,23 @@ pub fn load(manifest_path: &Path) -> Result<Project, i32> {
         );
     }
     let mut active_packs = Vec::new();
+    let mut derive_packs = Vec::new();
     for lang in &m.languages {
         match loaded.iter().find(|p| p.spec.name == *lang) {
-            Some(p) => match packs::activate(p) {
-                Ok(ap) => active_packs.push(ap),
-                Err(f) => eprintln!("{} {}  {}", f.code, f.span.file.display(), f.message),
-            },
+            Some(p) => {
+                match packs::activate(p) {
+                    Ok(ap) => active_packs.push(ap),
+                    Err(f) => eprintln!("{} {}  {}", f.code, f.span.file.display(), f.message),
+                }
+                // Derive-tier packs also feed the derived layer (D-070d): pass
+                // the spec as data plus the grammar handle as a separate arg.
+                if let (lore_intent::Tier::Derive, Some(grammar)) = (p.spec.tier, &p.grammar) {
+                    derive_packs.push(lore_derive::DerivePack {
+                        spec: p.spec.clone(),
+                        grammar: grammar.clone(),
+                    });
+                }
+            }
             None => eprintln!("note: language \"{lang}\" has no pack yet; skipping its files"),
         }
     }
@@ -92,6 +102,7 @@ pub fn load(manifest_path: &Path) -> Result<Project, i32> {
         manifest: m,
         sources,
         packs: active_packs,
+        derive_packs,
     })
 }
 
@@ -206,13 +217,13 @@ pub fn build_graph(p: &Project, manifest_path: &Path, check_stale: bool, quiet: 
     }
 }
 
-/// Whether a path has a derive-capable extension (§8 derived layer, D-014).
-/// Transitional: lore_derive still detects languages internally by extension;
-/// when it migrates onto packs the scope will be driven by pack tier.
-fn derive_capable(path: &Path) -> bool {
-    path.extension()
-        .and_then(|e| e.to_str())
-        .is_some_and(|e| DERIVE_EXTS.contains(&e))
+/// Whether a derive-tier pack claims `path` (§8.6.2): derivation scope is the
+/// union of every derive pack's claimed extensions (D-070b — tier drives it).
+fn derive_capable(packs: &[lore_derive::DerivePack], path: &Path) -> bool {
+    let name = path.to_string_lossy();
+    packs
+        .iter()
+        .any(|p| p.spec.extensions.iter().any(|e| name.ends_with(e.as_str())))
 }
 
 /// Run lore_derive over the derivation scope (D-061: files of supported
@@ -231,7 +242,7 @@ fn derive_layer(
     let units: Vec<lore_derive::SourceUnit> = p
         .sources
         .iter()
-        .filter(|s| derive_capable(&s.path))
+        .filter(|s| derive_capable(&p.derive_packs, &s.path))
         .filter_map(|s| {
             Some(lore_derive::SourceUnit {
                 path: s.path.clone(),
@@ -267,7 +278,7 @@ fn derive_layer(
                 .join(".lore-cache"),
         ),
     };
-    let result = lore_derive::derive(&config, &units, &states);
+    let result = lore_derive::derive(&config, &p.derive_packs, &units, &states);
 
     let edges = result.edges.into_iter().map(graph_edge).collect();
     let layer = lore_graph::DerivedLayer {

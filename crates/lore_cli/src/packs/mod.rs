@@ -305,7 +305,8 @@ pub fn load(src: &PackSource) -> Result<LoadedPack, Finding> {
         reject_unknown(b, "[binder]", &["wrappers", "sibling_skips"], &e0410)?;
     }
 
-    // [derive] -- mutators + import strategies, derive tier only.
+    // [derive] -- value functions + mutators + import strategies, derive tier only.
+    let mut value_functions = Vec::new();
     let mut mutator_methods = Vec::new();
     let mut mutator_free_functions = Vec::new();
     let mut imports = Vec::new();
@@ -316,6 +317,7 @@ pub fn load(src: &PackSource) -> Result<LoadedPack, Finding> {
                 tier.name()
             )));
         }
+        value_functions = opt_str_array(d, "value_functions", "[derive] value_functions", &e0410)?;
         if let Some(m) = d.get("mutators") {
             let m = m
                 .as_table()
@@ -335,7 +337,12 @@ pub fn load(src: &PackSource) -> Result<LoadedPack, Finding> {
             )?;
         }
         imports = parse_strategies(d, &e0410, &e0414)?;
-        reject_unknown(d, "[derive]", &["mutators", "imports"], &e0410)?;
+        reject_unknown(
+            d,
+            "[derive]",
+            &["value_functions", "mutators", "imports"],
+            &e0410,
+        )?;
     }
     if tier == Tier::Derive && imports.is_empty() {
         return Err(e0410(
@@ -383,6 +390,7 @@ pub fn load(src: &PackSource) -> Result<LoadedPack, Finding> {
             comment_token,
             wrappers,
             sibling_skips,
+            value_functions,
             mutator_methods,
             mutator_free_functions,
             imports,

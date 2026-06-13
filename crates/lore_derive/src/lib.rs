@@ -11,9 +11,12 @@
 //! and TypeScript (T6); Go, Java, Rust arrive at T8.
 
 mod cache;
+mod extract;
 mod facts;
-mod lang;
+mod imports;
 mod resolve;
+
+pub use lore_intent::PackSpec;
 
 /// Names of the custom import strategies registered in this crate (D-071b).
 /// The named-impl escape hatch: a pack's `kind = "custom", name = "<id>"`
@@ -47,10 +50,20 @@ pub struct StateSymbol {
 }
 
 pub struct DeriveConfig {
-    /// `[project] roots`: import-resolution roots for Python (§8.2).
+    /// `[project] roots`: import-resolution roots (§8.2, the `root_relative`
+    /// strategy's search roots, D-071).
     pub roots: Vec<String>,
     /// `.lore-cache/` location; None disables the cache (D-064).
     pub cache_dir: Option<PathBuf>,
+}
+
+/// One activated language pack (D-070): the validated `PackSpec` as data plus
+/// the tree-sitter grammar handle, passed in as a *separate* argument so
+/// `lore_intent` stays tree-sitter-free (D-070d). `lore_cli` builds these from
+/// its loader and the grammar registry.
+pub struct DerivePack {
+    pub spec: PackSpec,
+    pub grammar: tree_sitter::Language,
 }
 
 /// Edge kinds the derived layer produces (§8.2, §8.3). A subset of the §6.1
@@ -101,25 +114,36 @@ pub struct DeriveResult {
 // @lore
 // purpose: "Derive nodes and confidence-labeled edges from the files in derivation scope"
 // because: "Extraction is per-file and cacheable by content; everything cross-file is resolved fresh each run so the cache can never serve a stale edge (D-064)"
-pub fn derive(config: &DeriveConfig, files: &[SourceUnit], states: &[StateSymbol]) -> DeriveResult {
+pub fn derive(
+    config: &DeriveConfig,
+    packs: &[DerivePack],
+    files: &[SourceUnit],
+    states: &[StateSymbol],
+) -> DeriveResult {
+    // Compile each derive-tier pack's queries once (D-070d); reuse across files.
+    let compiled: Vec<extract::CompiledPack> = packs
+        .iter()
+        .filter(|p| p.spec.derive_scm.is_some())
+        .map(extract::CompiledPack::new)
+        .collect();
     let cache = config.cache_dir.as_deref().map(cache::Cache::new);
     let mut extracted = Vec::new();
     for file in files {
-        let Some(language) = lang::Language::from_path(&file.path) else {
-            continue;
+        let Some(cp) = compiled.iter().find(|c| c.claims(&file.path)) else {
+            continue; // no derive-tier pack for this file's extension
         };
-        let key = cache::key(language, file, &config.roots, states);
+        let key = cache::key(&cp.id, file, &config.roots, states);
         let facts = cache
             .as_ref()
             .and_then(|c| c.load(&key))
             .unwrap_or_else(|| {
-                let facts = facts::extract(language, file, states);
+                let facts = extract::extract(cp, file, states);
                 if let Some(c) = &cache {
                     c.store(&key, &facts);
                 }
                 facts
             });
-        extracted.push((file, language, facts));
+        extracted.push((file, cp, facts));
     }
     resolve::resolve(&extracted, states, &config.roots)
 }

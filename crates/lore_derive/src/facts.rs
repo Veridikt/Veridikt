@@ -5,9 +5,6 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::lang::Language;
-use crate::{SourceUnit, StateSymbol};
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) enum DeclKind {
     Function,
@@ -98,13 +95,4 @@ pub(crate) struct FileFacts {
     pub calls: Vec<CallFact>,
     pub imports: Vec<ImportFact>,
     pub touches: Vec<TouchFact>,
-}
-
-pub(crate) fn extract(language: Language, file: &SourceUnit, states: &[StateSymbol]) -> FileFacts {
-    match language {
-        Language::Python => crate::lang::python::extract(file, states),
-        Language::TypeScript | Language::Tsx => {
-            crate::lang::typescript::extract(language, file, states)
-        }
-    }
 }

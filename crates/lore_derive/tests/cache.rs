@@ -4,6 +4,8 @@
 use lore_derive::{DeriveConfig, DeriveResult, SourceUnit, StateSymbol, derive};
 use lore_intent::QName;
 
+mod common;
+
 fn files() -> Vec<SourceUnit> {
     vec![
         SourceUnit {
@@ -57,11 +59,11 @@ fn corrupt_cache_entries_degrade_to_a_miss() {
         roots: vec!["src".into()],
         cache_dir: Some(dir.path().to_path_buf()),
     };
-    let cold = snapshot(&derive(&cfg, &files(), &states()));
+    let cold = snapshot(&derive(&cfg, &common::packs(), &files(), &states()));
     for entry in std::fs::read_dir(dir.path().join("derive")).unwrap() {
         std::fs::write(entry.unwrap().path(), "not json").unwrap();
     }
-    let rederived = snapshot(&derive(&cfg, &files(), &states()));
+    let rederived = snapshot(&derive(&cfg, &common::packs(), &files(), &states()));
     assert_eq!(cold, rederived);
 }
 
@@ -72,7 +74,7 @@ fn warm_runs_return_identical_results() {
         roots: vec!["src".into()],
         cache_dir: Some(dir.path().to_path_buf()),
     };
-    let cold = snapshot(&derive(&cfg, &files(), &states()));
+    let cold = snapshot(&derive(&cfg, &common::packs(), &files(), &states()));
     assert!(
         std::fs::read_dir(dir.path().join("derive"))
             .unwrap()
@@ -80,7 +82,7 @@ fn warm_runs_return_identical_results() {
             >= 2,
         "the cache must be populated"
     );
-    let warm = snapshot(&derive(&cfg, &files(), &states()));
+    let warm = snapshot(&derive(&cfg, &common::packs(), &files(), &states()));
     assert_eq!(cold, warm);
 
     // no cache at all gives the same answer: the cache is invisible
@@ -89,6 +91,7 @@ fn warm_runs_return_identical_results() {
             roots: vec!["src".into()],
             cache_dir: None,
         },
+        &common::packs(),
         &files(),
         &states(),
     ));
@@ -102,11 +105,11 @@ fn changed_content_misses_the_stale_entry() {
         roots: vec!["src".into()],
         cache_dir: Some(dir.path().to_path_buf()),
     };
-    derive(&cfg, &files(), &states());
+    derive(&cfg, &common::packs(), &files(), &states());
 
     let mut changed = files();
     changed[1].text = "def signup():\n    pass\n".into(); // the call is gone
-    let r = derive(&cfg, &changed, &states());
+    let r = derive(&cfg, &common::packs(), &changed, &states());
     assert!(
         r.edges
             .iter()

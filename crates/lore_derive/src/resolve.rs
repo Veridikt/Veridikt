@@ -3,12 +3,13 @@
 //! facts on every run — only per-file extraction is cached (D-064).
 
 use std::collections::{HashMap, HashSet};
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use lore_intent::{Intent, IntentNode, Kind, Origin, QName, Span};
 
+use crate::extract::CompiledPack;
 use crate::facts::{CalleeFact, DeclKind, FileFacts, ImportFact, SpanFact};
-use crate::lang::Language;
+use crate::imports::{self, ProjectData};
 use crate::{
     DeriveResult, DerivedConfidence, DerivedEdge, DerivedEdgeKind, SourceUnit, StateSymbol,
 };
@@ -25,7 +26,7 @@ impl DerivedEdgeKind {
 }
 
 pub(crate) fn resolve(
-    extracted: &[(&SourceUnit, Language, FileFacts)],
+    extracted: &[(&SourceUnit, &CompiledPack, FileFacts)],
     states: &[StateSymbol],
     roots: &[String],
 ) -> DeriveResult {
@@ -83,14 +84,18 @@ pub(crate) fn resolve(
         })
         .collect();
 
+    // Language manifests for the `manifest_prefix` strategy (Go's go.mod, etc.).
+    // Python and TypeScript configure no such strategy, so this is empty for
+    // them; it is built from the scanned files when a pack needs it.
+    let manifests: HashMap<PathBuf, String> = HashMap::new();
     let resolve_import = |i: usize, import: &ImportFact| -> Option<usize> {
-        let (file, language, _) = &extracted[i];
-        match language {
-            Language::Python => python_module_file(import.module(), roots, &file_index),
-            Language::TypeScript | Language::Tsx => {
-                ts_relative_file(import.module(), &file.path, &file_index)
-            }
-        }
+        let (file, cp, _) = &extracted[i];
+        let data = ProjectData {
+            roots,
+            files: &file_index,
+            manifests: &manifests,
+        };
+        imports::resolve(&cp.strategies, import.module(), &file.path, &data)
     };
 
     // §8.1 nodes: every unambiguous declaration, origin Derived.
@@ -266,66 +271,6 @@ fn whole_import(imports: &[ImportFact], alias: &str) -> Option<usize> {
             ImportFact::Whole { alias: a, .. } if a == alias => Some(ii),
             _ => None,
         })
-}
-
-/// Python `a.b` -> `<root>/a/b.py` | `<root>/a/b/__init__.py` against the
-/// `[project] roots`, first match wins (§8.2).
-fn python_module_file(
-    module: &str,
-    roots: &[String],
-    files: &HashMap<&Path, usize>,
-) -> Option<usize> {
-    for root in roots {
-        let mut base = PathBuf::from(root);
-        for seg in module.split('.') {
-            base.push(seg);
-        }
-        for candidate in [base.with_extension("py"), base.join("__init__.py")] {
-            if let Some(&i) = files.get(normalize(&candidate).as_path()) {
-                return Some(i);
-            }
-        }
-    }
-    None
-}
-
-/// TS relative specifiers only (§8.2): `./`/`../` against the importing
-/// file's directory, trying `<p>`, `<p>.ts`, `<p>.tsx`, `<p>.js`,
-/// `<p>/index.ts` (D-062c).
-fn ts_relative_file(spec: &str, importer: &Path, files: &HashMap<&Path, usize>) -> Option<usize> {
-    if !(spec.starts_with("./") || spec.starts_with("../")) {
-        return None;
-    }
-    let base = normalize(&importer.parent().unwrap_or(Path::new("")).join(spec));
-    let raw = base.as_os_str().to_string_lossy();
-    let candidates = [
-        base.clone(),
-        PathBuf::from(format!("{raw}.ts")),
-        PathBuf::from(format!("{raw}.tsx")),
-        PathBuf::from(format!("{raw}.js")),
-        base.join("index.ts"),
-    ];
-    candidates
-        .iter()
-        .find_map(|c| files.get(c.as_path()).copied())
-}
-
-/// Lexical normalization: drop `.`, resolve `..` against earlier segments.
-/// Project paths are root-relative, so this cannot escape into surprises.
-fn normalize(p: &Path) -> PathBuf {
-    let mut out = PathBuf::new();
-    for c in p.components() {
-        match c {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                if !out.pop() {
-                    out.push("..");
-                }
-            }
-            other => out.push(other),
-        }
-    }
-    out
 }
 
 fn to_span(file: &Path, s: SpanFact) -> Span {

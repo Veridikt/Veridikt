@@ -79,6 +79,10 @@ pub struct PackSpec {
     pub comment_token: String,
     pub wrappers: Vec<String>,
     pub sibling_skips: Vec<String>,
+    /// Value-bound function node types (lambda/arrow): the D-062a attribution
+    /// walk stops at one, so a call inside it has no enclosing derived
+    /// function (D-074). Empty when the language has no such form.
+    pub value_functions: Vec<String>,
     pub mutator_methods: Vec<String>,
     pub mutator_free_functions: Vec<String>,
     pub imports: Vec<ImportStrategy>,
