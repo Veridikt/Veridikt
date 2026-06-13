@@ -10,12 +10,41 @@
 //! directory), so it is filesystem-free and testable at the boundary (G-4).
 //! Unhappy path first (G-11): every `E041x` class has a malformed-pack test.
 
+pub mod builtin;
 mod grammar;
 
 use std::path::{Path, PathBuf};
 
 use lore_intent::{Finding, ImportStrategy, PackSpec, Span, Tier};
 use toml::Value;
+
+/// Turn a validated pack into a `lore_annotations` adapter, compiling
+/// `bind.scm` against the grammar at activation (D-070d); a bad capture is
+/// `E0411`. Scan-tier packs get no binder.
+pub fn activate(pack: &LoadedPack) -> Result<lore_annotations::ActivePack, Finding> {
+    let span = Span {
+        file: PathBuf::from(format!("packs/{}/queries/bind.scm", pack.spec.name)),
+        line: 1,
+        col: 1,
+        end_line: 1,
+        end_col: 1,
+    };
+    let binder = match pack.spec.tier {
+        Tier::Scan => None,
+        Tier::Bind | Tier::Derive => {
+            let grammar = pack
+                .grammar
+                .as_ref()
+                .expect("loader guarantees a grammar at bind+");
+            Some(lore_annotations::Binder::new(&pack.spec, grammar, span)?)
+        }
+    };
+    Ok(lore_annotations::ActivePack {
+        extensions: pack.spec.extensions.clone(),
+        comment_token: pack.spec.comment_token.clone(),
+        binder,
+    })
+}
 
 /// The raw materials of one pack. `fixture_classes` lists the names of
 /// non-empty subdirectories of `fixtures/` (the conformance classes present,

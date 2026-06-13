@@ -286,6 +286,7 @@ version = "0.2.0"
 dependencies = [
  "globset",
  "lore_intent",
+ "streaming-iterator",
  "tree-sitter",
  "tree-sitter-python",
  "tree-sitter-rust",

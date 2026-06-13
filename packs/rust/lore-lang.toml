@@ -1,0 +1,21 @@
+# Rust language pack (spec §8.6, §7.4, D-050). Migrated from the pre-T8
+# Lang::Rust scanner+binder row (D-070h). Tier "bind": Rust gains derivation
+# (with the custom rust_use_paths import strategy, D-071c) at T8 step 6.
+
+[pack]
+name   = "rust"
+format = 1
+tier   = "bind"
+
+[grammar]
+source = "builtin"
+name   = "tree_sitter_rust"
+
+[scanner]
+extensions    = [".rs"]
+comment_token = "//"
+
+[binder]
+# Rust attributes precede the declaration as siblings, not wrappers (D-050c):
+# the binder advances past them and binds the declaration that follows.
+sibling_skips = ["attribute_item"]

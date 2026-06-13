@@ -1,0 +1,21 @@
+# Python language pack (spec §8.6, §7.4). Migrated from the pre-T8
+# lore_annotations Lang::Python row + lore_derive/src/lang/python (D-070h).
+# Tier is "bind" until the derive adapter migrates onto packs (then it gains
+# derive.scm + import strategies + mutators and becomes "derive").
+
+[pack]
+name   = "python"
+format = 1
+tier   = "bind"
+
+[grammar]
+source = "builtin"
+name   = "tree_sitter_python"
+
+[scanner]
+extensions    = [".py"]
+comment_token = "#"
+
+[binder]
+# §7.4 wrapper/skip column (D-042): descend through these to the declaration.
+wrappers = ["decorated_definition", "expression_statement"]

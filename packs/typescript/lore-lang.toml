@@ -1,0 +1,22 @@
+# TypeScript/JS language pack (spec §8.6, §7.4). Covers JS (D-014). Migrated
+# from the pre-T8 Lang::TypeScript row (D-070h). Tier "bind" until the derive
+# adapter migrates onto packs.
+#
+# The pack uses the TypeScript grammar for all its extensions; the TSX-grammar
+# variant for .tsx/.jsx is a follow-up (no fixture exercises JSX syntax).
+
+[pack]
+name   = "typescript"
+format = 1
+tier   = "bind"
+
+[grammar]
+source = "builtin"
+name   = "tree_sitter_typescript"
+
+[scanner]
+extensions    = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]
+comment_token = "//"
+
+[binder]
+wrappers = ["export_statement"]
