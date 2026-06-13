@@ -15,6 +15,14 @@ mod facts;
 mod lang;
 mod resolve;
 
+/// Names of the custom import strategies registered in this crate (D-071b).
+/// The named-impl escape hatch: a pack's `kind = "custom", name = "<id>"`
+/// must name one of these, validated at pack load (E0414). Each requires its
+/// own D-entry; `rust_use_paths` (D-071c) is the first.
+pub fn custom_strategy_names() -> &'static [&'static str] {
+    &["rust_use_paths"]
+}
+
 use std::path::PathBuf;
 
 use lore_intent::{IntentNode, QName, Span};

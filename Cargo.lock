@@ -305,6 +305,10 @@ dependencies = [
  "serde_json",
  "tempfile",
  "toml",
+ "tree-sitter",
+ "tree-sitter-python",
+ "tree-sitter-rust",
+ "tree-sitter-typescript",
 ]
 
 [[package]]

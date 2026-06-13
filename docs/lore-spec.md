@@ -619,6 +619,36 @@ pub enum Kind { Module, Service, Workflow, Step, State, Event, Type, Error, Func
 pub enum Severity { Error, Warning }                 // derived from the code letter (D-040)
 pub struct Finding { pub code: &'static str, pub severity: Severity, pub span: Span, pub message: String }
 
+// Language pack as pure data (§8.6, D-070/D-071). lore_cli parses and
+// validates a pack, then hands the PackSpec to lore_annotations / lore_derive
+// alongside the tree-sitter grammar handle as a *separate* argument -- so
+// lore_intent never depends on tree-sitter (D-070d). bind_scm / derive_scm
+// carry the query source text; the generic adapter compiles them at
+// activation (E0411 on a compile failure or unknown capture name).
+pub struct PackSpec {
+    pub name: String,                    // == pack dir name, == lore.toml language id
+    pub format: u32,                     // §8.6.1; this spec defines version 1
+    pub tier: Tier,                      // scan | bind | derive (§8.6.2)
+    pub grammar_id: Option<String>,      // statically linked grammar id (bind+); None at scan
+    pub extensions: Vec<String>,         // claimed file extensions, e.g. [".go"]
+    pub comment_token: String,           // line-comment token (§7.1)
+    pub wrappers: Vec<String>,           // descend-wrapper node types (§7.3, D-042)
+    pub sibling_skips: Vec<String>,      // preceding-sibling skips (D-050c)
+    pub mutator_methods: Vec<String>,    // §8.3 receiver mutators
+    pub mutator_free_functions: Vec<String>, // §8.3 first-arg mutators (Go delete)
+    pub imports: Vec<ImportStrategy>,    // ordered; first resolution wins (D-071)
+    pub bind_scm: Option<String>,        // declaration query source (tier bind+)
+    pub derive_scm: Option<String>,      // call/import/touch query source (tier derive)
+}
+pub enum Tier { Scan, Bind, Derive }
+pub enum ImportStrategy {                // §8.6.1, D-071 built-in strategy library
+    Relative       { extensions: Vec<String>, index_files: Vec<String> },
+    RootRelative   { separator: String, extensions: Vec<String>, init_files: Vec<String> },
+    PackageDir     { extensions: Vec<String> },
+    ManifestPrefix { manifest_file: String, prefix_key: String },
+    Custom         { name: String },     // selects a registered lore_derive impl; needs a D-entry
+}
+
 // ---- lore_graph ----
 pub enum EdgeKind { Affects, Reads, Triggers, Emits, Handles, DependsOn, Contains, Sequence, Calls }
 pub enum Layer { Declared, Derived }
