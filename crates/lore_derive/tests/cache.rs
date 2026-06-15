@@ -58,6 +58,7 @@ fn corrupt_cache_entries_degrade_to_a_miss() {
     let cfg = DeriveConfig {
         roots: vec!["src".into()],
         cache_dir: Some(dir.path().to_path_buf()),
+        manifests: Vec::new(),
     };
     let cold = snapshot(&derive(&cfg, &common::packs(), &files(), &states()));
     for entry in std::fs::read_dir(dir.path().join("derive")).unwrap() {
@@ -73,6 +74,7 @@ fn warm_runs_return_identical_results() {
     let cfg = DeriveConfig {
         roots: vec!["src".into()],
         cache_dir: Some(dir.path().to_path_buf()),
+        manifests: Vec::new(),
     };
     let cold = snapshot(&derive(&cfg, &common::packs(), &files(), &states()));
     assert!(
@@ -90,6 +92,7 @@ fn warm_runs_return_identical_results() {
         &DeriveConfig {
             roots: vec!["src".into()],
             cache_dir: None,
+            manifests: Vec::new(),
         },
         &common::packs(),
         &files(),
@@ -104,6 +107,7 @@ fn changed_content_misses_the_stale_entry() {
     let cfg = DeriveConfig {
         roots: vec!["src".into()],
         cache_dir: Some(dir.path().to_path_buf()),
+        manifests: Vec::new(),
     };
     derive(&cfg, &common::packs(), &files(), &states());
 

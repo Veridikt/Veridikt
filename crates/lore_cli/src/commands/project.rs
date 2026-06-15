@@ -217,6 +217,54 @@ pub fn build_graph(p: &Project, manifest_path: &Path, check_stale: bool, quiet: 
     }
 }
 
+/// Collect the language-manifest texts the derive packs' `manifest_prefix`
+/// strategies name (e.g. Go's `go.mod`), keyed by project-relative path
+/// (§8.2 rule 2, D-071). The engine never reads the filesystem (D-058), so the
+/// CLI gathers these; empty when no pack configures the strategy.
+fn collect_manifests(root: &Path, packs: &[lore_derive::DerivePack]) -> Vec<(PathBuf, String)> {
+    use lore_intent::ImportStrategy;
+    let mut names: Vec<&str> = packs
+        .iter()
+        .flat_map(|p| &p.spec.imports)
+        .filter_map(|s| match s {
+            ImportStrategy::ManifestPrefix { manifest_file, .. } => Some(manifest_file.as_str()),
+            _ => None,
+        })
+        .collect();
+    names.sort();
+    names.dedup();
+    if names.is_empty() {
+        return Vec::new();
+    }
+    let mut found = Vec::new();
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if path.is_dir() {
+                if !(SKIP_DIRS.contains(&name.as_ref())
+                    || name.starts_with('.')
+                    || is_pack_fixtures(&dir, &name))
+                {
+                    stack.push(path);
+                }
+            } else if names.contains(&name.as_ref())
+                && let Ok(text) = std::fs::read_to_string(&path)
+                && let Ok(rel) = path.strip_prefix(root)
+            {
+                found.push((rel.to_path_buf(), text));
+            }
+        }
+    }
+    found.sort();
+    found
+}
+
 /// Whether a derive-tier pack claims `path` (§8.6.2): derivation scope is the
 /// union of every derive pack's claimed extensions (D-070b — tier drives it).
 fn derive_capable(packs: &[lore_derive::DerivePack], path: &Path) -> bool {
@@ -269,14 +317,11 @@ fn derive_layer(
         })
         .collect();
 
+    let root = manifest_path.parent().unwrap_or(Path::new("."));
     let config = lore_derive::DeriveConfig {
         roots: p.manifest.roots.clone(),
-        cache_dir: Some(
-            manifest_path
-                .parent()
-                .unwrap_or(Path::new("."))
-                .join(".lore-cache"),
-        ),
+        cache_dir: Some(root.join(".lore-cache")),
+        manifests: collect_manifests(root, &p.derive_packs),
     };
     let result = lore_derive::derive(&config, &p.derive_packs, &units, &states);
 
@@ -325,6 +370,13 @@ fn discover_codeowners(root: &Path) -> Option<lore_graph::Codeowners> {
         })
 }
 
+/// A language pack's `fixtures/` directory (a `fixtures` dir beside a
+/// `lore-lang.toml`) holds deliberately-malformed conformance inputs, not
+/// project source, so the walk skips it (§8.6.4, D-075).
+fn is_pack_fixtures(parent: &Path, name: &str) -> bool {
+    name == "fixtures" && parent.join("lore-lang.toml").is_file()
+}
+
 fn collect_sources(root: &Path, dir: &Path, packs: &[ActivePack], out: &mut Vec<PathBuf>) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
@@ -334,7 +386,10 @@ fn collect_sources(root: &Path, dir: &Path, packs: &[ActivePack], out: &mut Vec<
         let name = entry.file_name();
         let name = name.to_string_lossy();
         if path.is_dir() {
-            if SKIP_DIRS.contains(&name.as_ref()) || name.starts_with('.') {
+            if SKIP_DIRS.contains(&name.as_ref())
+                || name.starts_with('.')
+                || is_pack_fixtures(dir, &name)
+            {
                 continue;
             }
             collect_sources(root, &path, packs, out);

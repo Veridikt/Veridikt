@@ -55,6 +55,12 @@ pub struct DeriveConfig {
     pub roots: Vec<String>,
     /// `.lore-cache/` location; None disables the cache (D-064).
     pub cache_dir: Option<PathBuf>,
+    /// Language-manifest texts (e.g. Go's `go.mod`) keyed by their
+    /// project-relative path, for the `manifest_prefix` import strategy
+    /// (§8.2 rule 2, D-071). The engine never reads the filesystem (D-058);
+    /// the CLI collects these from the manifest files a derive pack's
+    /// strategies name. Empty for packs that configure no such strategy.
+    pub manifests: Vec<(PathBuf, String)>,
 }
 
 /// One activated language pack (D-070): the validated `PackSpec` as data plus
@@ -145,5 +151,7 @@ pub fn derive(
             });
         extracted.push((file, cp, facts));
     }
-    resolve::resolve(&extracted, states, &config.roots)
+    let manifests: std::collections::HashMap<PathBuf, String> =
+        config.manifests.iter().cloned().collect();
+    resolve::resolve(&extracted, states, &config.roots, &manifests)
 }

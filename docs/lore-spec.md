@@ -425,6 +425,8 @@ Mandatory; this is how packs protect G-7. `fixtures/<class>/<case>/` holds input
 
 A pack missing a mandatory class (or with an empty one), or whose suite has not passed for its exact content, MUST NOT be activated (`E0415`). Builtin packs are enforced in CI by the **conformance harness** -- a `lore_cli` test running every embedded pack's suite through the real scan→bind→derive pipeline -- so a failing pack cannot ship. Future external packs (reserved, like WASM grammars) run the suite at first load.
 
+A pack's `fixtures/` directory is conformance test data, not project source: the CLI source walk skips the `fixtures/` directory of any language pack (a `fixtures` dir beside a `lore-lang.toml`), so its deliberately-malformed inputs never enter `lore scan`/`lint` (D-075).
+
 ---
 
 ## 9. Reconciliation and Staleness

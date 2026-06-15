@@ -29,6 +29,7 @@ pub(crate) fn resolve(
     extracted: &[(&SourceUnit, &CompiledPack, FileFacts)],
     states: &[StateSymbol],
     roots: &[String],
+    manifests: &HashMap<PathBuf, String>,
 ) -> DeriveResult {
     // qname per declaration, and the D-060d ambiguity set.
     let qnames: Vec<Vec<QName>> = extracted
@@ -84,16 +85,16 @@ pub(crate) fn resolve(
         })
         .collect();
 
-    // Language manifests for the `manifest_prefix` strategy (Go's go.mod, etc.).
+    // Language manifests for the `manifest_prefix` strategy (Go's go.mod, etc.),
+    // supplied by the CLI (D-058: the engine never reads the filesystem).
     // Python and TypeScript configure no such strategy, so this is empty for
-    // them; it is built from the scanned files when a pack needs it.
-    let manifests: HashMap<PathBuf, String> = HashMap::new();
+    // them.
     let resolve_import = |i: usize, import: &ImportFact| -> Option<usize> {
         let (file, cp, _) = &extracted[i];
         let data = ProjectData {
             roots,
             files: &file_index,
-            manifests: &manifests,
+            manifests,
         };
         imports::resolve(&cp.strategies, import.module(), &file.path, &data)
     };

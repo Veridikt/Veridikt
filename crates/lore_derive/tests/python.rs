@@ -11,6 +11,7 @@ fn cfg() -> DeriveConfig {
     DeriveConfig {
         roots: vec!["src".into()],
         cache_dir: None,
+        manifests: Vec::new(),
     }
 }
 
