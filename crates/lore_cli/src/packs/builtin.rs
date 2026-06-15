@@ -53,5 +53,13 @@ pub fn sources() -> Vec<PackSource> {
             derive_scm: Some(pack_file!("java", "queries/derive.scm").into()),
             fixture_classes: vec!["scan".into(), "bind".into(), "derive".into()],
         },
+        PackSource {
+            name: "go".into(),
+            manifest_path: "packs/go/lore-lang.toml".into(),
+            manifest: pack_file!("go", "lore-lang.toml").into(),
+            bind_scm: Some(pack_file!("go", "queries/bind.scm").into()),
+            derive_scm: Some(pack_file!("go", "queries/derive.scm").into()),
+            fixture_classes: vec!["scan".into(), "bind".into(), "derive".into()],
+        },
     ]
 }

@@ -134,7 +134,16 @@ impl CompiledPack {
             bind,
             derive,
             value_functions: pack.spec.value_functions.clone(),
-            mutators: pack.spec.mutator_methods.iter().cloned().collect(),
+            // Methods (`sym.append(...)`) and free functions (Go `delete(sym,
+            // ...)`) both surface as a `@touch.receiver`+`@touch.call_function`
+            // pair, so one set drives the write decision for both (§8.3).
+            mutators: pack
+                .spec
+                .mutator_methods
+                .iter()
+                .chain(&pack.spec.mutator_free_functions)
+                .cloned()
+                .collect(),
             whole_alias: pack.spec.whole_alias,
             import_sep,
             b,
