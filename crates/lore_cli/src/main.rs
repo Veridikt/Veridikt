@@ -86,6 +86,9 @@ enum Command {
         #[arg(long, value_name = "N", requires = "focus")]
         depth: Option<usize>,
     },
+    /// MCP server over stdio (D-037): read-only tools lore_ask, lore_show,
+    /// lore_lint, lore_history, returning the §10.4 JSON
+    Mcp,
 }
 
 fn main() {
@@ -138,7 +141,24 @@ fn run(cli: Cli) -> i32 {
             Some(path) => commands::graph::run(&path, dot, focus.as_deref(), depth, cli.quiet),
             None => 2,
         },
+        // D-079e: the server starts even with no manifest yet, then fails each
+        // tool call until one exists — so it does not have to be (re)launched
+        // when the project gains a lore.toml. Hence manifest_candidate, not
+        // discover_manifest's hard exit-2.
+        Command::Mcp => commands::mcp::run(&manifest_candidate(&cli)),
     }
+}
+
+/// The manifest path for `lore mcp`: `--manifest`, else discovery, else the
+/// CWD's `lore.toml` as a best guess (which per-call loading will report as
+/// missing). Unlike `discover_manifest` this never fails the command — the
+/// server must come up so a later call can succeed (D-079e).
+fn manifest_candidate(cli: &Cli) -> PathBuf {
+    if let Some(p) = &cli.manifest {
+        return p.clone();
+    }
+    let cwd = std::env::current_dir().unwrap_or_default();
+    lore_cli::manifest::discover(&cwd).unwrap_or_else(|| cwd.join("lore.toml"))
 }
 
 /// `--manifest` or walk up from CWD; E0402 on stderr when nothing is found.

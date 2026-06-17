@@ -1,0 +1,7 @@
+[project]
+name = "mcp_project"
+languages = ["python"]
+roots = ["src"]
+
+[modules]
+"src/**" = "Payment"

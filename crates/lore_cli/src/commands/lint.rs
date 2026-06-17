@@ -23,8 +23,39 @@ pub fn run(manifest_path: &Path, json: bool, no_stale: bool, quiet: bool, no_col
         Err(code) => return code,
     };
 
+    let (graph, findings) = compute(&p, manifest_path, no_stale, quiet);
+
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&output::lint_to_json(&graph, &findings))
+                .expect("lint JSON serializes")
+        );
+    } else {
+        let color = !no_color && std::io::IsTerminal::is_terminal(&std::io::stdout());
+        print!("{}", output::render_lint(&graph, &findings, quiet, color));
+    }
+
+    if findings.iter().any(|f| f.severity == Severity::Error) {
+        1
+    } else {
+        0
+    }
+}
+
+/// Build the graph and produce the lint findings as `run` reports them:
+/// scanner/parser findings plus the graph's, then [policy] promotion
+/// (D-057/D-068e), the undeclared-effects default (D-067b), [lint] overrides
+/// (D-056), and the deterministic sort. Shared by `run` and the `lore_lint`
+/// MCP tool (D-079) so both surfaces apply the manifest policy identically.
+pub fn compute(
+    p: &project::Project,
+    manifest_path: &Path,
+    no_stale: bool,
+    quiet: bool,
+) -> (lore_graph::Graph, Vec<lore_intent::Finding>) {
     // D-068c: lint is the one command that gathers blame metadata.
-    let built = project::build_graph(&p, manifest_path, !no_stale, quiet);
+    let built = project::build_graph(p, manifest_path, !no_stale, quiet);
     let graph = built.graph;
     let mut findings = built.findings;
     findings.extend(graph.findings.iter().cloned());
@@ -72,20 +103,5 @@ pub fn run(manifest_path: &Path, json: bool, no_stale: bool, quiet: bool, no_col
         ))
     });
 
-    if json {
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&output::lint_to_json(&graph, &findings))
-                .expect("lint JSON serializes")
-        );
-    } else {
-        let color = !no_color && std::io::IsTerminal::is_terminal(&std::io::stdout());
-        print!("{}", output::render_lint(&graph, &findings, quiet, color));
-    }
-
-    if findings.iter().any(|f| f.severity == Severity::Error) {
-        1
-    } else {
-        0
-    }
+    (graph, findings)
 }

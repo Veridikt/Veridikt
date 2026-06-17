@@ -28,17 +28,49 @@ pub fn run(manifest_path: &Path, qname: &str, json: bool, quiet: bool) -> i32 {
         Ok(p) => p,
         Err(code) => return code,
     };
-    let graph = project::build_graph(&p, manifest_path, false, quiet).graph;
 
-    // D-059a: the argument must name a node; mirror ask's D-053a failure.
-    let node = match lore_graph::exec::lookup(&graph, &QName::from_dotted(qname)) {
-        Ok(n) => n,
+    let (file, start, end, commits) = match collect(&p, manifest_path, qname, quiet) {
+        Ok(h) => h,
         Err(e) => {
-            eprintln!("{e}");
+            eprint!("{e}");
             return 2;
         }
     };
-    let (file, start, end) = (&node.loc.file, node.loc.line, node.loc.end_line);
+    let file = file.as_path();
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&output::history_to_json(
+                qname, file, start, end, &commits
+            ))
+            .expect("history JSON serializes")
+        );
+    } else {
+        print!(
+            "{}",
+            output::render_history(qname, file, start, end, &commits, quiet)
+        );
+    }
+    0
+}
+
+/// Build the graph, resolve the node, and render `git log -L` over its
+/// subject span. Returns `(file, start, end, commits)` or, on the D-059
+/// failure modes (unknown node, git unrunnable, git error), the exact
+/// message text `run` prints to stderr — so the `lore_history` MCP tool
+/// (D-079) reports the same failures as tool errors without re-deriving them.
+pub fn collect(
+    p: &project::Project,
+    manifest_path: &Path,
+    qname: &str,
+    quiet: bool,
+) -> Result<(std::path::PathBuf, u32, u32, Vec<Commit>), String> {
+    let graph = project::build_graph(p, manifest_path, false, quiet).graph;
+
+    // D-059a: the argument must name a node; mirror ask's D-053a failure.
+    let node = lore_graph::exec::lookup(&graph, &QName::from_dotted(qname))
+        .map_err(|e| format!("{e}\n"))?;
+    let (file, start, end) = (node.loc.file.clone(), node.loc.line, node.loc.end_line);
 
     // D-059b: -s suppresses the patch; %x1f/%x1e are field/record breaks.
     let root = manifest_path.parent().unwrap_or(Path::new("."));
@@ -55,34 +87,20 @@ pub fn run(manifest_path: &Path, qname: &str, json: bool, quiet: bool) -> i32 {
         .output();
     let out = match out {
         Ok(o) => o,
+        // D-059c: no git, no answer — unlike staleness, there is nothing
+        // honest to render without the repository.
         Err(e) => {
-            // D-059c: no git, no answer — unlike staleness, there is
-            // nothing honest to render without the repository.
-            eprintln!("lore history needs git, which could not be run: {e}");
-            return 2;
+            return Err(format!(
+                "lore history needs git, which could not be run: {e}\n"
+            ));
         }
     };
     if !out.status.success() {
-        eprint!("{}", String::from_utf8_lossy(&out.stderr));
-        return 2;
+        return Err(String::from_utf8_lossy(&out.stderr).into_owned());
     }
 
     let commits = parse_log(&String::from_utf8_lossy(&out.stdout));
-    if json {
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&output::history_to_json(
-                qname, file, start, end, &commits
-            ))
-            .expect("history JSON serializes")
-        );
-    } else {
-        print!(
-            "{}",
-            output::render_history(qname, file, start, end, &commits, quiet)
-        );
-    }
-    0
+    Ok((file, start, end, commits))
 }
 
 /// Split the %x1e-terminated records into commits. An empty log is an

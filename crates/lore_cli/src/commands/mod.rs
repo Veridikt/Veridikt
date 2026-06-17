@@ -3,6 +3,7 @@ pub mod graph;
 pub mod history;
 pub mod init;
 pub mod lint;
+pub mod mcp;
 pub mod project;
 pub mod scan;
 pub mod stale;
