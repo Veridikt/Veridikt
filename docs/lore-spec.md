@@ -576,7 +576,7 @@ Single binary `lore` (crate `lore_cli`).
 | `lore stats [--json]` | Coverage: nodes by kind/origin, % declared intent per kind, claims by status (T7), unresolved_calls + ambiguous_derived_names counts (D-065) | T6 (counts) → T7 (claim statuses) |
 | `lore history <qname> [--json]` | §9.3 (D-059) | T5 |
 | `lore graph --dot [--focus <qname> --depth N]` | Graphviz export (D-038) | T8 |
-| `lore mcp` | MCP server (stdio): tools `lore_ask`, `lore_show`, `lore_lint`, `lore_history` mapping 1:1 to the JSON outputs (D-037, mechanics D-079) | T9 |
+| `lore mcp` | MCP server (stdio): tools `lore_ask`, `lore_show`, `lore_lint`, `lore_history` mapping 1:1 to the JSON outputs (D-037, mechanics D-079, usage guidance D-080) | T9 |
 | `lorec build / run` | Phase 2 compiler/VM driver | L1+ |
 
 Global flags: `--manifest <path>`, `--quiet`, `--no-color`.

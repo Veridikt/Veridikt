@@ -22,6 +22,34 @@ use crate::output;
 /// requested version when present, so a newer client negotiates its own.
 const PROTOCOL_VERSION: &str = "2025-06-18";
 
+/// Server-level usage guidance (D-080): the MCP-standard `initialize`
+/// `instructions` string, which clients fold into the model's system prompt.
+/// It travels with the server to every connected agent — so "when to use
+/// lore" lives here, not in any one project's instruction file.
+const INSTRUCTIONS: &str = "\
+Lore serves this project's intent graph: a map, reconciled against the actual \
+code, of what each construct does, what state it writes (affects) and reads, \
+what it calls and reaches, what it depends on, who owns it, and why it \
+changed — every answer labeled with how far it can be trusted (declared \
+claims as Verified/Unverified/Contradicted/Unverifiable; derived edges as \
+Exact/Resolved/Heuristic).
+
+Consult these tools BEFORE reading or grepping source to answer such \
+questions: the graph gives a precise, trust-labeled answer faster and more \
+reliably than scanning files. Map the question to a tool:
+- what does <node> do / what is it for -> lore_show(qname)
+- what writes / reads <state> -> lore_ask query=\"affects(<state>)\" / \"reads(<state>)\"
+- what does <fn> affect or read -> lore_ask query=\"touches(<fn>)\"
+- what calls / reaches <fn> -> lore_ask query=\"triggers(<fn>)\" / \"reaches(<fn>)\"
+- what depends on <x> / what does <x> depend on -> lore_ask query=\"dependents(<x>)\" / \"depends(<x>)\"
+- who owns <area> -> lore_ask query=\"owner(\\\"<team>\\\")\"
+- why did <node> change -> lore_history(qname)
+- is anything drifted, stale, or contradicted -> lore_lint
+
+Names are qualified (e.g. Payment.charge); a wrong name returns the nearest \
+match. All tools are read-only. Fall back to reading source only when the \
+graph does not cover the question.";
+
 // @lore
 // name: mcp
 // purpose: "Serve lore's four read-only query/report surfaces over MCP stdio so coding agents can read the intent graph (D-037, D-079)"
@@ -97,6 +125,9 @@ fn initialize_result(params: &Value) -> Value {
         "protocolVersion": version,
         "capabilities": {"tools": {}},
         "serverInfo": {"name": "lore", "version": env!("CARGO_PKG_VERSION")},
+        // D-080: system-prompt-level guidance so every connected agent learns
+        // when to reach for these tools, not just that they exist.
+        "instructions": INSTRUCTIONS,
     })
 }
 
@@ -108,7 +139,7 @@ fn tools_list() -> Value {
         "tools": [
             {
                 "name": "lore_ask",
-                "description": "Query the Lore intent graph and return the answer with witness chains and per-hop trust labels (Verified/Unverified/Contradicted/Unverifiable for declared edges, Exact/Resolved/Heuristic for derived). Use this to trace effects and relationships across the codebase: affects(State) — what writes a piece of state; reads(State) — what reads it; touches(Fn) — what state a function affects or reads; triggers(Fn)/reaches(X) — call reachability; emits(Event)/handlers(Event) — event producers and consumers; depends(X)/dependents(X); path(A, B); owner(\"team\"); unknown — open questions. Example: to answer \"what writes to the ledger?\" pass query = \"affects(Payment.ledger)\".",
+                "description": "Prefer this over reading or grepping source to trace effects and relationships in this project. Queries the Lore intent graph and returns the answer with witness chains and per-hop trust labels (Verified/Unverified/Contradicted/Unverifiable for declared edges, Exact/Resolved/Heuristic for derived). Query forms: affects(State) — what writes a piece of state; reads(State) — what reads it; touches(Fn) — what state a function affects or reads; triggers(Fn)/reaches(X) — call reachability; emits(Event)/handlers(Event) — event producers and consumers; depends(X)/dependents(X); path(A, B); owner(\"team\"); unknown — open questions. Example: to answer \"what writes to the ledger?\" pass query = \"affects(Payment.ledger)\".",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -121,7 +152,7 @@ fn tools_list() -> Value {
             },
             {
                 "name": "lore_show",
-                "description": "Show the full node card for one qualified name: its kind, origin, every declared intent clause (purpose, because, owner, assumes, unknown, ...), and all incoming/outgoing edges with their layer and trust label. Use this to understand what a single construct is for and how it connects. Works for derived-only nodes too (the card simply shows no declared intent).",
+                "description": "Prefer this over reading the source file to understand a single construct: shows the full node card for one qualified name — its kind, origin, every declared intent clause (purpose, because, owner, assumes, unknown, ...), and all incoming/outgoing edges with their layer and trust label. Answers \"what is X for and how does it connect\". Works for derived-only nodes too (the card simply shows no declared intent).",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -132,12 +163,12 @@ fn tools_list() -> Value {
             },
             {
                 "name": "lore_lint",
-                "description": "Run the full Lore lint over the project: structural resolution, claim reconciliation (which declared effects are Verified vs Contradicted by the code), staleness, and hygiene, returning every finding with its diagnostic code, severity, and location. Use this to find drift between declared intent and the actual code, or to audit annotation health. Takes no arguments.",
+                "description": "Prefer this over manually auditing annotations: runs the full Lore lint over the project — structural resolution, claim reconciliation (which declared effects are Verified vs Contradicted by the code), staleness, and hygiene — returning every finding with its diagnostic code, severity, and location. Use it to find drift between declared intent and the actual code, or to gauge annotation health. Takes no arguments.",
                 "inputSchema": {"type": "object", "properties": {}}
             },
             {
                 "name": "lore_history",
-                "description": "Render the git change history of a node's subject span: the commits (hash, author, date, full message) that touched the code behind a qualified name. Use this to recover WHY a construct changed over time, straight from commit messages.",
+                "description": "Prefer this over running git log yourself to recover WHY a construct changed: renders the git change history of a node's subject span — the commits (hash, author, date, full message) that touched the code behind a qualified name, straight from commit messages.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {

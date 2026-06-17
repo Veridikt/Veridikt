@@ -209,6 +209,43 @@ fn initialize_echoes_protocol_version_and_advertises_tools() {
 }
 
 #[test]
+fn initialize_instructions_tell_agents_when_to_use_the_tools() {
+    // D-080: server-level guidance travels to every client via initialize.
+    let r = mcp_session(
+        &fixture("mcp_project"),
+        &[json!({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                 "params": {"protocolVersion": "2025-06-18", "capabilities": {}}})],
+    );
+    let instructions = by_id(&r, 1)["result"]["instructions"]
+        .as_str()
+        .expect("initialize carries an instructions string");
+    // it must steer the agent to the tools before reading source, and map
+    // question shapes to tool forms.
+    assert!(instructions.contains("BEFORE reading"));
+    assert!(instructions.contains("lore_show") && instructions.contains("lore_ask"));
+    assert!(instructions.contains("affects(") && instructions.contains("touches("));
+}
+
+#[test]
+fn tool_descriptions_are_imperative_about_preferring_the_graph() {
+    // D-080b: passive descriptions don't beat the read-the-source prior.
+    let r = mcp_session(
+        &fixture("mcp_project"),
+        &[json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})],
+    );
+    for t in by_id(&r, 2)["result"]["tools"].as_array().unwrap() {
+        assert!(
+            t["description"]
+                .as_str()
+                .unwrap()
+                .contains("Prefer this over"),
+            "{} description is not imperative",
+            t["name"]
+        );
+    }
+}
+
+#[test]
 fn tools_list_advertises_exactly_the_four_read_only_tools() {
     let r = mcp_session(
         &fixture("mcp_project"),
