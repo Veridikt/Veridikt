@@ -2,6 +2,15 @@
 name = "veridikt_annotations"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "@veridikt annotation scanning, binding, and module scoping."
+readme = "README.md"
+keywords = ["veridikt", "annotations", "tree-sitter", "intent"]
+categories = ["development-tools"]
 
 [dependencies]
 veridikt_intent.workspace = true
@@ -12,6 +21,7 @@ streaming-iterator.workspace = true
 globset.workspace = true
 
 [dev-dependencies]
+veridikt_packs.workspace = true
 tree-sitter-python.workspace = true
 tree-sitter-typescript.workspace = true
 tree-sitter-rust.workspace = true

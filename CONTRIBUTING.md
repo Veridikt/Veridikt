@@ -57,9 +57,9 @@ If you're unsure whether something fits, open an issue describing the input and 
    cargo test --workspace
    cargo fmt --check
    cargo clippy --workspace --all-targets -- -D warnings
-   cargo run -p veridikt_cli -- lint        # Veridikt lints itself
+   cargo run -p veridikt -- lint        # Veridikt lints itself
    ```
-   New pack work also needs: `cargo test -p veridikt_cli --test conformance`.
+   New pack work also needs: `cargo test -p veridikt --test conformance`.
 5. **Commit messages explain *why*** and cite spec/ledger/guidelines (`§N.N`, `D-NNN`, `G-N`) - `veridikt history` renders them back to users (G-10).
 6. **Open the PR** against `main`. Describe the behavior change and link the issue. CI runs the four checks above; all must be green.
 

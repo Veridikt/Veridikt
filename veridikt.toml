@@ -7,4 +7,5 @@ roots = ["crates"]
 "crates/veridikt_intent/**" = "Intent"
 "crates/veridikt_annotations/**" = "Annotations"
 "crates/veridikt_graph/**" = "Graph"
+"crates/veridikt_packs/**" = "Packs"
 "crates/veridikt_cli/**" = "Cli"

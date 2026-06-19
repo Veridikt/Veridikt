@@ -58,7 +58,13 @@ Every line of output carries its origin and trust - so you always know whether y
 
 ## 5-minute quickstart
 
-Veridikt is pre-1.0 and not yet on crates.io - build from source (needs a Rust toolchain with edition 2024):
+Veridikt is pre-1.0. Install the published CLI (needs a Rust toolchain with edition 2024):
+
+```sh
+cargo install veridikt
+```
+
+Or build from source:
 
 ```sh
 git clone https://github.com/YassineKaibi/Veridikt && cd Veridikt
@@ -92,7 +98,7 @@ Add your first `@veridikt` block above a declaration, rerun `veridikt lint`, and
 
 ### Wire it into CI
 
-`veridikt lint` is built to gate merges: it exits `1` on any error-severity finding (including `Contradicted` claims), with deterministically-ordered output so diffs are stable. See [`examples/ci-sample`](examples/ci-sample) for a workflow that goes red on a seeded violation. This repo dogfoods Veridikt on itself - `cargo run -p veridikt_cli -- lint` runs in its own CI.
+`veridikt lint` is built to gate merges: it exits `1` on any error-severity finding (including `Contradicted` claims), with deterministically-ordered output so diffs are stable. See [`examples/ci-sample`](examples/ci-sample) for a workflow that goes red on a seeded violation. This repo dogfoods Veridikt on itself - `cargo run -p veridikt -- lint` runs in its own CI.
 
 ---
 
@@ -170,5 +176,5 @@ The project is documentation-driven, and the documents are binding:
 cargo test --workspace
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
-cargo run -p veridikt_cli -- lint   # dogfood: lint Veridikt with Veridikt
+cargo run -p veridikt -- lint   # dogfood: lint Veridikt with Veridikt
 ```

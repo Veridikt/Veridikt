@@ -2,6 +2,15 @@
 name = "veridikt_derive"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "Veridikt derived layer: static extraction of functions, calls, and effects from host source, every edge carrying a confidence."
+readme = "README.md"
+keywords = ["veridikt", "static-analysis", "tree-sitter", "intent"]
+categories = ["development-tools"]
 
 [dependencies]
 veridikt_intent.workspace = true
@@ -14,6 +23,7 @@ serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
+veridikt_packs.workspace = true
 tempfile.workspace = true
 
 [lints]

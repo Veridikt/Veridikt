@@ -606,20 +606,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
-name = "veridikt_annotations"
-version = "0.2.0"
-dependencies = [
- "globset",
- "streaming-iterator",
- "tree-sitter",
- "tree-sitter-python",
- "tree-sitter-rust",
- "tree-sitter-typescript",
- "veridikt_intent",
-]
-
-[[package]]
-name = "veridikt_cli"
+name = "veridikt"
 version = "0.2.0"
 dependencies = [
  "clap",
@@ -638,6 +625,21 @@ dependencies = [
  "veridikt_derive",
  "veridikt_graph",
  "veridikt_intent",
+ "veridikt_packs",
+]
+
+[[package]]
+name = "veridikt_annotations"
+version = "0.2.0"
+dependencies = [
+ "globset",
+ "streaming-iterator",
+ "tree-sitter",
+ "tree-sitter-python",
+ "tree-sitter-rust",
+ "tree-sitter-typescript",
+ "veridikt_intent",
+ "veridikt_packs",
 ]
 
 [[package]]
@@ -652,6 +654,7 @@ dependencies = [
  "tree-sitter-python",
  "tree-sitter-typescript",
  "veridikt_intent",
+ "veridikt_packs",
 ]
 
 [[package]]
@@ -664,6 +667,10 @@ dependencies = [
 
 [[package]]
 name = "veridikt_intent"
+version = "0.2.0"
+
+[[package]]
+name = "veridikt_packs"
 version = "0.2.0"
 
 [[package]]

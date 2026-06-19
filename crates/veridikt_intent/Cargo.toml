@@ -2,6 +2,15 @@
 name = "veridikt_intent"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "Shared intent-model contracts (the AST contract) for Veridikt."
+readme = "README.md"
+keywords = ["veridikt", "intent", "annotations", "ast"]
+categories = ["development-tools"]
 
 [dependencies]
 

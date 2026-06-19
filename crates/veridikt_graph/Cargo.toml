@@ -2,6 +2,15 @@
 name = "veridikt_graph"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "The Veridikt intent graph: node table, adjacency, resolution, reconciliation, and queries."
+readme = "README.md"
+keywords = ["veridikt", "graph", "intent", "reconciliation"]
+categories = ["development-tools"]
 
 [dependencies]
 veridikt_intent.workspace = true

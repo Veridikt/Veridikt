@@ -33,12 +33,12 @@ const BUILTIN_PACKS: &[&str] = &["python", "typescript", "rust", "go", "java"];
 #[test]
 fn builtin_packs_pass_their_conformance_suites() {
     let bless = std::env::var_os("VERIDIKT_BLESS").is_some();
-    let root = workspace_root();
+    let root = veridikt_packs::packs_dir();
     let mut ran = 0usize;
     let mut mismatches: Vec<String> = Vec::new();
 
     for name in BUILTIN_PACKS {
-        let dir = root.join("packs").join(name);
+        let dir = root.join(name);
         if !dir.is_dir() {
             continue; // pack not yet shipped (Go/Java land in T8 step 6)
         }
@@ -335,11 +335,4 @@ fn case_dirs(class_dir: &Path) -> Vec<PathBuf> {
         .collect();
     cases.sort();
     cases
-}
-
-fn workspace_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .canonicalize()
-        .expect("workspace root resolves")
 }

@@ -1,8 +1,8 @@
 //! Shared pack construction for the boundary tests. The derive adapter is
 //! pack-driven (D-070): these build the Python and TypeScript `DerivePack`s
-//! from the real on-disk pack files (queries via `include_str!`) plus the
-//! pinned grammar handle, exactly as `veridikt_cli`'s loader would — so the tests
-//! exercise the shipping packs, not a stand-in.
+//! from the canonical `veridikt_packs` query strings plus the pinned grammar
+//! handle, exactly as `veridikt_cli`'s loader would — so the tests exercise the
+//! shipping packs, not a stand-in.
 
 use veridikt_derive::DerivePack;
 use veridikt_intent::{ImportStrategy, PackSpec, Tier, WholeAlias};
@@ -49,8 +49,8 @@ fn python_pack() -> DerivePack {
                 extensions: strings(&[".py"]),
                 init_files: strings(&["__init__.py"]),
             }],
-            bind_scm: Some(include_str!("../../../../packs/python/queries/bind.scm").into()),
-            derive_scm: Some(include_str!("../../../../packs/python/queries/derive.scm").into()),
+            bind_scm: Some(veridikt_packs::PYTHON.bind_scm.unwrap().into()),
+            derive_scm: Some(veridikt_packs::PYTHON.derive_scm.unwrap().into()),
         },
         grammar: tree_sitter_python::LANGUAGE.into(),
     }
@@ -82,10 +82,8 @@ fn typescript_pack() -> DerivePack {
                 extensions: strings(&[".ts", ".tsx", ".js"]),
                 index_files: strings(&["index.ts"]),
             }],
-            bind_scm: Some(include_str!("../../../../packs/typescript/queries/bind.scm").into()),
-            derive_scm: Some(
-                include_str!("../../../../packs/typescript/queries/derive.scm").into(),
-            ),
+            bind_scm: Some(veridikt_packs::TYPESCRIPT.bind_scm.unwrap().into()),
+            derive_scm: Some(veridikt_packs::TYPESCRIPT.derive_scm.unwrap().into()),
         },
         grammar: tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
     }

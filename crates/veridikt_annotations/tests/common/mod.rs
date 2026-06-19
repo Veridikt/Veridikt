@@ -2,9 +2,10 @@
 #![allow(dead_code)]
 
 //! Test plumbing: build the builtin packs as adapters straight from the
-//! workspace `packs/` query files, using the dev-dependency grammar crates.
-//! The CLI's conformance harness exercises the same packs end to end; these
-//! crate-boundary tests keep the per-language assertions close to the binder.
+//! canonical `veridikt_packs` query strings, using the dev-dependency grammar
+//! crates. The CLI's conformance harness exercises the same packs end to end;
+//! these crate-boundary tests keep the per-language assertions close to the
+//! binder.
 
 use veridikt_annotations::{ActivePack, Binder};
 use veridikt_intent::{PackSpec, Span, Tier};
@@ -53,7 +54,7 @@ pub fn python_binder() -> Binder {
         "#",
         &["decorated_definition", "expression_statement"],
         &[],
-        include_str!("../../../../packs/python/queries/bind.scm"),
+        veridikt_packs::PYTHON.bind_scm.unwrap(),
     );
     Binder::new(&s, &tree_sitter_python::LANGUAGE.into(), span()).unwrap()
 }
@@ -65,7 +66,7 @@ pub fn typescript_binder() -> Binder {
         "//",
         &["export_statement"],
         &[],
-        include_str!("../../../../packs/typescript/queries/bind.scm"),
+        veridikt_packs::TYPESCRIPT.bind_scm.unwrap(),
     );
     Binder::new(
         &s,
@@ -82,7 +83,7 @@ pub fn rust_binder() -> Binder {
         "//",
         &[],
         &["attribute_item"],
-        include_str!("../../../../packs/rust/queries/bind.scm"),
+        veridikt_packs::RUST.bind_scm.unwrap(),
     );
     Binder::new(&s, &tree_sitter_rust::LANGUAGE.into(), span()).unwrap()
 }

@@ -5,12 +5,18 @@ members = [
     "crates/veridikt_annotations",
     "crates/veridikt_derive",
     "crates/veridikt_graph",
+    "crates/veridikt_packs",
     "crates/veridikt_cli",
 ]
 
 [workspace.package]
 version = "0.2.0"
 edition = "2024"
+rust-version = "1.94"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Veridikt/Veridikt"
+homepage = "https://github.com/Veridikt/Veridikt"
+authors = ["Mohamed Yassine Kaibi"]
 
 [workspace.lints.clippy]
 # The dogfooding pattern (D-050d) is doc comment, blank line, @veridikt block,
@@ -18,10 +24,11 @@ edition = "2024"
 empty_line_after_doc_comments = "allow"
 
 [workspace.dependencies]
-veridikt_intent = { path = "crates/veridikt_intent" }
-veridikt_annotations = { path = "crates/veridikt_annotations" }
-veridikt_derive = { path = "crates/veridikt_derive" }
-veridikt_graph = { path = "crates/veridikt_graph" }
+veridikt_intent = { path = "crates/veridikt_intent", version = "0.2.0" }
+veridikt_annotations = { path = "crates/veridikt_annotations", version = "0.2.0" }
+veridikt_derive = { path = "crates/veridikt_derive", version = "0.2.0" }
+veridikt_graph = { path = "crates/veridikt_graph", version = "0.2.0" }
+veridikt_packs = { path = "crates/veridikt_packs", version = "0.2.0" }
 # tree-sitter pinned: grammar churn is roadmap risk 4
 tree-sitter = "0.25"
 tree-sitter-python = "0.23"

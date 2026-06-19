@@ -1,0 +1,21 @@
+[package]
+name = "veridikt_packs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "Builtin language packs (manifests + tree-sitter queries) for Veridikt."
+readme = "README.md"
+keywords = ["veridikt", "packs", "tree-sitter", "languages"]
+categories = ["development-tools"]
+# Fixtures are conformance inputs read from the repo checkout, never at runtime
+# (D-070e); keep them out of the published tarball.
+exclude = ["packs/*/fixtures/"]
+
+[dependencies]
+
+[lints]
+workspace = true

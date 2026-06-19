@@ -21,7 +21,7 @@ jobs:
       - name: veridikt lint fails on the seeded E0201
         run: |
           set +e
-          out=$(cargo run -q -p veridikt_cli -- lint --no-color --manifest examples/ci-sample/veridikt.toml)
+          out=$(cargo run -q -p veridikt -- lint --no-color --manifest examples/ci-sample/veridikt.toml)
           code=$?
           echo "$out"
           if [ "$code" -ne 1 ]; then
